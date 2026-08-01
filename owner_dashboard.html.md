@@ -1,0 +1,254 @@
+ html>  
+<html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>Super Admin Owner Dashboard - Subscription Control</title>  
+      
+    <!-- Firebase App & Realtime Database CDN -->  
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>  
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>  
+  
+    <style>  
+        body {  
+            font-family: Arial, sans-serif;  
+            background: #f4f4f9;  
+            margin: 0;  
+            padding: 20px;  
+            color: #333;  
+        }  
+        /* Login Screen Overlay */  
+        #login-overlay {  
+            position: fixed;  
+            top: 0;  
+            left: 0;  
+            width: 100%;  
+            height: 100%;  
+            background: #f4f4f9;  
+            display: flex;  
+            justify-content: center;  
+            align-items: center;  
+            z-index: 9999;  
+        }  
+        .login-box {  
+            background: white;  
+            padding: 30px;  
+            border-radius: 8px;  
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);  
+            width: 320px;  
+            text-align: center;  
+        }  
+        .login-box h2 {  
+            color: #4f46e5;  
+            margin-bottom: 15px;  
+        }  
+        .login-box input {  
+            width: 100%;  
+            padding: 10px;  
+            margin-bottom: 15px;  
+            border: 1px solid #ddd;  
+            border-radius: 4px;  
+            box-sizing: border-box;  
+            font-size: 14px;  
+        }  
+        .login-box button {  
+            width: 100%;  
+            padding: 10px;  
+            background: #4f46e5;  
+            color: white;  
+            border: none;  
+            border-radius: 4px;  
+            font-weight: bold;  
+            cursor: pointer;  
+        }  
+        .login-box button:hover {  
+            background: #4338ca;  
+        }  
+  
+        /* Dashboard Styles */  
+        .container {  
+            max-width: 900px;  
+            margin: auto;  
+            background: white;  
+            padding: 25px;  
+            border-radius: 8px;  
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);  
+        }  
+        h1 {  
+            color: #4f46e5;  
+            font-size: 24px;  
+            margin-bottom: 10px;  
+        }  
+        p {  
+            color: #666;  
+            margin-bottom: 20px;  
+        }  
+        table {  
+            width: 100%;  
+            border-collapse: collapse;  
+            margin-top: 15px;  
+        }  
+        th, td {  
+            padding: 12px;  
+            text-align: left;  
+            border-bottom: 1px solid #ddd;  
+        }  
+        th {  
+            background-color: #f8f9fa;  
+        }  
+        .badge-active {  
+            background: #d4edda;  
+            color: #155724;  
+            padding: 5px 10px;  
+            border-radius: 4px;  
+            font-weight: bold;  
+            font-size: 12px;  
+        }  
+        .badge-locked {  
+            background: #f8d7da;  
+            color: #721c24;  
+            padding: 5px 10px;  
+            border-radius: 4px;  
+            font-weight: bold;  
+            font-size: 12px;  
+        }  
+        button.action-btn {  
+            padding: 6px 14px;  
+            border: none;  
+            border-radius: 4px;  
+            cursor: pointer;  
+            font-weight: bold;  
+        }  
+        .btn-lock {  
+            background: #dc3545;  
+            color: white;  
+        }  
+        .btn-lock:hover {  
+            background: #c82333;  
+        }  
+        .btn-unlock {  
+            background: #28a745;  
+            color: white;  
+        }  
+        .btn-unlock:hover {  
+            background: #218838;  
+        }  
+    </style>  
+</head>  
+<body>  
+  
+    <!-- Secure Admin Login Screen -->  
+    <div id="login-overlay">  
+        <div class="login-box">  
+            <h2>Admin Login</h2>  
+            <p style="font-size: 13px; margin-bottom: 15px;">Enter your owner password to access controls.</p>  
+            <input type="password" id="admin-pass" placeholder="Enter Password" onkeypress="handleKeyPress(event)">  
+            <button onclick="checkLogin()">Access Dashboard</button>  
+        </div>  
+    </div>  
+  
+    <!-- Main Dashboard Container -->  
+    <div class="container" id="dashboard-content" style="display: none;">  
+        <h1>Super Admin Control Panel</h1>  
+        <p>Monitor and manage subscription statuses for all deployed client web applications.</p>  
+          
+        <table>  
+            <thead>  
+                <tr>  
+                    <th>Business ID / Details</th>  
+                    <th>Current Status</th>  
+                    <th>Action</th>  
+                </tr>  
+            </thead>  
+            <tbody id="business-list">  
+                <tr><td colspan="3" style="text-align:center;">Connecting to Firebase database...</td></tr>  
+            </tbody>  
+        </table>  
+    </div>  
+  
+    <script>  
+        // Set your owner password here (Change "Emmanuel123" to any secure password you prefer)  
+        const ADMIN_PASSWORD = "Emmanuel123";  
+  
+        function checkLogin() {  
+            const enteredPass = document.getElementById('admin-pass').value;  
+            if (enteredPass === ADMIN_PASSWORD) {  
+                document.getElementById('login-overlay').style.display = 'none';  
+                document.getElementById('dashboard-content').style.display = 'block';  
+                sessionStorage.setItem('ownerLoggedIn', 'true');  
+                loadDashboardData();  
+            } else {  
+                alert('Incorrect password! Please try again.');  
+            }  
+        }  
+  
+        function handleKeyPress(e) {  
+            if (e.key === 'Enter') {  
+                checkLogin();  
+            }  
+        }  
+  
+        // Keep session active if already logged in during this browser session  
+        window.onload = function() {  
+            if (sessionStorage.getItem('ownerLoggedIn') === 'true') {  
+                document.getElementById('login-overlay').style.display = 'none';  
+                document.getElementById('dashboard-content').style.display = 'block';  
+                loadDashboardData();  
+            }  
+        };  
+  
+        // Firebase Configuration & Dashboard Logic  
+        function loadDashboardData() {  
+            const firebaseConfig = {  
+                databaseURL: "YOUR_FIREBASE_DATABASE_URL"  
+            };  
+              
+            if (!firebase.apps.length) {  
+                firebase.initializeApp(firebaseConfig);  
+            }  
+  
+            const db = firebase.database();  
+            const businessListRef = db.ref('businesses');  
+  
+            businessListRef.on('value', (snapshot) => {  
+                const tbody = document.getElementById('business-list');  
+                tbody.innerHTML = '';  
+                  
+                const data = snapshot.val();  
+                if (!data) {  
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No registered businesses found in database.</td></tr>';  
+                    return;  
+                }  
+  
+                Object.keys(data).forEach((bizId) => {  
+                    const biz = data[bizId];  
+                    const status = biz.accountStatus || 'active';  
+                      
+                    const tr = document.createElement('tr');  
+                    tr.innerHTML = `  
+                        <td><strong>${bizId}</strong><br><small style="color:#777;">Owner / Ref: ${biz.ownerName || 'N/A'}</small></td>  
+                        <td><span class="${status === 'locked' ? 'badge-locked' : 'badge-active'}">${status.toUpperCase()}</span></td>  
+                        <td>  
+                            ${status === 'locked'   
+                                ? `<button class="action-btn btn-unlock" onclick="updateStatus('${bizId}', 'active')">Unlock</button>`  
+                                : `<button class="action-btn btn-lock" onclick="updateStatus('${bizId}', 'locked')">Lock Out</button>`  
+                            }  
+                        </td>  
+                    `;  
+                    tbody.appendChild(tr);  
+                });  
+            });  
+        }  
+  
+        function updateStatus(bizId, newStatus) {  
+            firebase.database().ref('businesses/' + bizId).update({ accountStatus: newStatus })  
+                .then(() => {  
+                    console.log(`Successfully updated business ${bizId} to ${newStatus}`);  
+                })  
+                .catch((error) => {  
+                    alert('Error updating status: ' + error.message);  
+                });  
+        }  
+    </script>  
+</body>  
+</html>  
